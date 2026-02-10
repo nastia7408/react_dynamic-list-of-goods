@@ -1,56 +1,58 @@
-import React, {useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import './App.scss';
 import { GoodsList } from './GoodsList';
 import { getAll, get5First, getRedGoods } from './api/goods';
 import { Good } from './types/Good';
 
-
 export const App: React.FC = () => {
   const [goods, setGoods] = useState<Good[]>([]);
   const [allGoods, setAllGoods] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleLoadAll = () => {
-    getAll().then(data => {
-      setGoods(data);
-      setAllGoods(true);
-    });
-  };
+  const loadGoods = useCallback((functionSort: () => Promise<Good[]>) => {
+    setError(null);
 
-  const handleLoadFive = () => {
-    get5First().then(data => {
-      setGoods(data);
-      setAllGoods(true);
-    });
-  };
-
-  const handleLoadRed = () => {
-    getRedGoods().then(data => {
-      setGoods(data);
-      setAllGoods(true);
-    });
-  };
+    functionSort()
+      .then(data => {
+        setGoods(data);
+        setAllGoods(true);
+      })
+      .catch(() => {
+        setError('Something went wrong!');
+      });
+  }, []);
 
   return (
     <div className="App">
       <h1>Dynamic list of Goods</h1>
 
-      <button type="button" onClick={handleLoadAll} data-cy="all-button">
+      {error && <p className="error-message">{error}</p>}
+
+      <button
+        type="button"
+        onClick={() => loadGoods(getAll)}
+        data-cy="all-button"
+      >
         Load all goods
       </button>
 
       <button
         type="button"
-        onClick={handleLoadFive}
+        onClick={() => loadGoods(get5First)}
         data-cy="first-five-button"
       >
         Load 5 first goods
       </button>
 
-      <button type="button" onClick={handleLoadRed} data-cy="red-button">
+      <button
+        type="button"
+        onClick={() => loadGoods(getRedGoods)}
+        data-cy="red-button"
+      >
         Load red goods
       </button>
 
-      {allGoods && <GoodsList goods={goods} />}
+      {allGoods && !error && <GoodsList goods={goods} />}
     </div>
   );
 };
